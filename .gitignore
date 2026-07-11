@@ -4,3 +4,4 @@ __pycache__/
 .venv/
 .wt/
 .DS_Store
+.coverage
