@@ -6,24 +6,37 @@ LLM extracts entities and relationships; you approve via `$EDITOR`.
 
 ## Installation
 
-```bash
-# One-line setup
-just setup
-just install    # symlinks wt → ~/.local/bin/wt
+### One-liner (curl | bash)
 
-# Or manually
+```bash
+curl -fsSL https://raw.githubusercontent.com/poodbooq/writing-tool/main/install.sh | bash
+```
+
+### Manual
+
+```bash
+# Clone and setup
+git clone https://github.com/poodbooq/writing-tool.git
+cd writing-tool
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 ln -sf "$(realpath .venv/bin/wt)" ~/.local/bin/wt
 ```
 
-Requires Python ≥ 3.11.
+### With just
+
+```bash
+just setup
+just install    # symlinks wt → ~/.local/bin/wt
+```
+
+Requires Python ≥ 3.11. Make sure `~/.local/bin` is in your `PATH`.
 
 ## Quick start
 
 ```bash
 cd ~/my-novel
-wt init
+wt init --skill    # creates .wt/ + .agents/skills/writing-tool/
 
 # Write a scene
 cat > scene-001.md <<EOF
