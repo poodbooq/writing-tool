@@ -58,7 +58,9 @@ wt serve
 
 | Command | Description |
 |---------|-------------|
-| `wt init` | Create `writing.db` in current directory |
+| `wt init [--skill]` | Create `.wt/` directory with DB + config |
+| `wt install-skill [--force]` | Install agent skill to `.agents/skills/writing-tool/` |
+| `wt update` | Update wt to latest version via git pull |
 | `wt extract [--yes] <file>...` | LLM analyzes `.md` files, opens `$EDITOR` |
 | `wt reindex [--yes]` | Re-extract all changed `.md` files |
 | `wt show <label> [--depth N] [--json]` | Show entity properties + relationships |
