@@ -84,6 +84,20 @@ def install_skill_cmd(force: bool) -> None:
     click.echo(f"Installed skill to {dest}/")
 
 
+@cli.command(name="update-skill")
+def update_skill_cmd() -> None:
+    """Reinstall skill files to .agents/skills/writing-tool/ (forces overwrite)."""
+    from writing_tool.skill_installer import find_agents_skills_dir
+
+    existing = find_agents_skills_dir()
+    if not existing:
+        agents_skills = ensure_agents_skills_dir(Path.cwd())
+    else:
+        agents_skills = existing
+    dest = _install_skill(agents_skills, force=True)
+    click.echo(f"Updated skill at {dest}/")
+
+
 @cli.command(name="update")
 def update_cmd() -> None:
     """Update wt to the latest version from GitHub."""
