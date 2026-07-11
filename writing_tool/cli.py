@@ -6,7 +6,7 @@ from typing import Any
 
 import click
 
-from writing_tool.config import get_api_key, get_model, load_config, save_defaults
+from writing_tool.config import get_api_key, get_ignored_dirs, get_model, load_config, save_defaults
 from writing_tool.extractor import extract as llm_extract
 from writing_tool.interactive import run_extract
 from writing_tool.scanner import scan_md_files
@@ -204,10 +204,11 @@ def reindex(yes: bool) -> None:
     cfg = _get_config()
     model = get_model(cfg)
     api_key = get_api_key(cfg)
+    ignore_dirs = get_ignored_dirs(cfg)
     root = _find_wt_dir().parent
 
     tracked = store.get_tracked_files()
-    files = scan_md_files(root)
+    files = scan_md_files(root, ignore_dirs=ignore_dirs)
 
     changed: list[dict[str, object]] = []
     for f in files:

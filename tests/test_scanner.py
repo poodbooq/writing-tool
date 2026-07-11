@@ -82,6 +82,31 @@ def test_scan_ignores_nested_wt() -> None:
         assert "chapters/.wt/c.md" not in paths
 
 
+def test_scan_ignores_agents_dir() -> None:
+    with tempfile.TemporaryDirectory() as d:
+        Path(d, "story.md").write_text("", encoding="utf-8")
+        Path(d, ".agents").mkdir(parents=True)
+        Path(d, ".agents", "skills").mkdir(parents=True)
+        Path(d, ".agents", "skills", "note.md").write_text("", encoding="utf-8")
+        results = scan_md_files(d)
+        paths = [r["path"] for r in results]
+        assert "story.md" in paths
+        assert ".agents/skills/note.md" not in paths
+        assert len(results) == 1
+
+
+def test_scan_custom_ignore_dirs() -> None:
+    with tempfile.TemporaryDirectory() as d:
+        Path(d, "keep.md").write_text("", encoding="utf-8")
+        Path(d, "skip.md").write_text("", encoding="utf-8")
+        Path(d, "archive").mkdir()
+        Path(d, "archive", "old.md").write_text("", encoding="utf-8")
+        results = scan_md_files(d, ignore_dirs={"archive"})
+        paths = [r["path"] for r in results]
+        assert "keep.md" in paths
+        assert "archive/old.md" not in paths
+
+
 def test_scan_sorts_by_path() -> None:
     with tempfile.TemporaryDirectory() as d:
         Path(d, "z.md").write_text("", encoding="utf-8")
