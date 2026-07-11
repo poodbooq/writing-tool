@@ -98,3 +98,4 @@ store.stats()
 - `WT_LLM_MODEL`: LLM model (default: `gpt-4o-mini`)
 - `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY` etc. — per LiteLLM conventions
 - `EDITOR`: text editor for interactive approval (default: `vi`)
+- `.wt/config.toml`: `[llm].api_key` overrides `OPENAI_API_KEY`

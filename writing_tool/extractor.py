@@ -36,17 +36,24 @@ def _default_model() -> str:
     return os.environ.get("WT_LLM_MODEL", "gpt-4o-mini")
 
 
-def extract(text: str, model: str | None = None) -> dict[str, Any]:
+def extract(
+    text: str,
+    model: str | None = None,
+    api_key: str | None = None,
+) -> dict[str, Any]:
     """Extract entities and relationships from text using LLM."""
-    resp = completion(
-        model=model or _default_model(),
-        messages=[
+    kwargs: dict[str, Any] = {
+        "model": model or _default_model(),
+        "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Analyze this text:\n\n{text}"},
         ],
-        response_format={"type": "json_object"},
-        temperature=0.1,
-    )
+        "response_format": {"type": "json_object"},
+        "temperature": 0.1,
+    }
+    if api_key:
+        kwargs["api_key"] = api_key
+    resp = completion(**kwargs)
     content = resp.choices[0].message.content
     if not content:
         return {"entities": [], "relationships": []}

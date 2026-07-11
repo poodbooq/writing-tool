@@ -154,7 +154,7 @@ wt add-node --type character --label Максим --props '{"age":30}'
 |----------|---------|-------------|
 | `WT_LLM_MODEL` | `gpt-4o-mini` | LLM model to use |
 | `EDITOR` | `vi` | Text editor for approval |
-| `OPENAI_API_KEY` | — | For OpenAI models |
+| `OPENAI_API_KEY` | — | For OpenAI models (can use `api_key` in config.toml instead) |
 | `OPENROUTER_API_KEY` | — | For OpenRouter |
 | `DEEPSEEK_API_KEY` | — | For DeepSeek |
 | `OLLAMA_API_BASE` | — | For local Ollama |
@@ -166,6 +166,7 @@ wt add-node --type character --label Максим --props '{"age":30}'
 ```toml
 [llm]
 model = "gpt-4o-mini"
+api_key = "sk-..."    # optional, overrides OPENAI_API_KEY env var
 ```
 
 The `model` value follows LiteLLM conventions:

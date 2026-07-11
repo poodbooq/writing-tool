@@ -6,7 +6,7 @@ from typing import Any
 
 import click
 
-from writing_tool.config import get_model, load_config, save_defaults
+from writing_tool.config import get_api_key, get_model, load_config, save_defaults
 from writing_tool.extractor import extract as llm_extract
 from writing_tool.interactive import run_extract
 from writing_tool.scanner import scan_md_files
@@ -162,6 +162,7 @@ def extract(files: tuple[str, ...], yes: bool) -> None:
     store = _get_store()
     cfg = _get_config()
     model = get_model(cfg)
+    api_key = get_api_key(cfg)
 
     if not files:
         return
@@ -174,7 +175,7 @@ def extract(files: tuple[str, ...], yes: bool) -> None:
         text = path.read_text(encoding="utf-8")
         stat = path.stat()
         click.echo(f"Analyzing {f}...")
-        result = llm_extract(text, model=model)
+        result = llm_extract(text, model=model, api_key=api_key)
         ne = len(result.get("entities", []))
         nr = len(result.get("relationships", []))
         click.echo(f"  Found {ne} entities, {nr} relationships")
@@ -202,6 +203,7 @@ def reindex(yes: bool) -> None:
     store = _get_store()
     cfg = _get_config()
     model = get_model(cfg)
+    api_key = get_api_key(cfg)
     root = _find_wt_dir().parent
 
     tracked = store.get_tracked_files()
@@ -226,7 +228,7 @@ def reindex(yes: bool) -> None:
         assert isinstance(mtime, float)
         click.echo(f"\n{fpath}")
         text = _read_file(abspath)
-        result = llm_extract(text, model=model)
+        result = llm_extract(text, model=model, api_key=api_key)
         ne = len(result.get("entities", []))
         nr = len(result.get("relationships", []))
         click.echo(f"  {ne} entities, {nr} relationships")
@@ -355,14 +357,15 @@ def query(query_str: tuple[str, ...]) -> None:
         return
     cfg = _get_config()
     model = get_model(cfg)
+    api_key = get_api_key(cfg)
     store = _get_store()
     question = " ".join(query_str)
     stats = store.stats()
     context = f"The graph has {stats['nodes']} nodes and {stats['edges']} edges."
     from litellm import completion
-    resp = completion(
-        model=model,
-        messages=[
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": [
             {
                 "role": "system",
                 "content": "You are a story graph assistant. Answer questions based on the available graph data. "
@@ -374,8 +377,11 @@ def query(query_str: tuple[str, ...]) -> None:
                 f"To answer, use the store: call python code with store.get_graph, store.find_nodes, etc.",
             },
         ],
-        temperature=0.3,
-    )
+        "temperature": 0.3,
+    }
+    if api_key:
+        kwargs["api_key"] = api_key
+    resp = completion(**kwargs)
     click.echo(resp.choices[0].message.content)
 
 
@@ -383,9 +389,10 @@ def query(query_str: tuple[str, ...]) -> None:
 @click.option("--port", default=5000, type=int, help="Port to serve on")
 def serve(port: int) -> None:
     """Start a local web server with an interactive graph viewer."""
+    cfg = _get_config()
     store = _get_store()
     from writing_tool.server import create_app
-    app = create_app(store)
+    app = create_app(store, cfg=cfg)
     click.echo(f"Starting server on http://127.0.0.1:{port}")
     app.run(host="127.0.0.1", port=port, debug=True)
 

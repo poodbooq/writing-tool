@@ -11,8 +11,9 @@ from writing_tool.store import Store
 WEB_DIR = Path(__file__).parent / "web"
 
 
-def create_app(store: Store) -> Flask:
+def create_app(store: Store, cfg: dict[str, Any] | None = None) -> Flask:
     app = Flask(__name__)
+    config = cfg or {}
 
     @app.after_request
     def cors(response: Response) -> Response:
@@ -65,17 +66,23 @@ def create_app(store: Store) -> Flask:
         question = data.get("question", "")
         if not question:
             return jsonify({"answer": "No question provided."})
+        from writing_tool.config import get_api_key, get_model
+        model = get_model(config)
+        api_key = get_api_key(config)
         from litellm import completion
         stats = store.stats()
         context = f"Graph has {stats['nodes']} nodes, {stats['edges']} edges. Types: {stats['by_type']}."
-        resp = completion(
-            model="gpt-4o-mini",
-            messages=[
+        kwargs: dict[str, Any] = {
+            "model": model,
+            "messages": [
                 {"role": "system", "content": "You are a story graph assistant. Answer concisely based on graph data."},
                 {"role": "user", "content": f"{context}\n\nQuestion: {question}"},
             ],
-            temperature=0.3,
-        )
+            "temperature": 0.3,
+        }
+        if api_key:
+            kwargs["api_key"] = api_key
+        resp = completion(**kwargs)
         return jsonify({"answer": resp.choices[0].message.content})
 
     @app.route("/")

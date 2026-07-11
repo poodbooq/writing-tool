@@ -29,11 +29,17 @@ def get_model(cfg: dict[str, Any]) -> str:
     return val
 
 
+def get_api_key(cfg: dict[str, Any]) -> str | None:
+    val = cfg.get("llm", {}).get("api_key")
+    return str(val) if val else None
+
+
 def save_defaults(wt_dir: Path) -> None:
     cfg_path = wt_dir / "config.toml"
     if not cfg_path.exists():
         cfg_path.write_text(
             "[llm]\n"
-            'model = "gpt-4o-mini"\n',
+            'model = "gpt-4o-mini"\n'
+            '# api_key = "sk-..."   # optional, overrides OPENAI_API_KEY\n',
             encoding="utf-8",
         )
