@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -81,6 +82,62 @@ def install_skill_cmd(force: bool) -> None:
         agents_skills = ensure_agents_skills_dir(Path.cwd())
     dest = _install_skill(agents_skills, force=force)
     click.echo(f"Installed skill to {dest}/")
+
+
+@cli.command(name="update")
+def update_cmd() -> None:
+    """Update wt to the latest version from GitHub."""
+    # Find project root — either where this module lives or from CWD
+    pkg_dir = Path(__file__).resolve().parent
+    for d in [pkg_dir, *pkg_dir.parents]:
+        if (d / "pyproject.toml").exists():
+            project_root = d
+            break
+    else:
+        project_root = Path.cwd()
+
+    git_dir = project_root / ".git"
+    if not git_dir.is_dir():
+        click.echo("Not a git repository — cannot update.")
+        return
+
+    remote = (
+        subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True, text=True, cwd=project_root,
+        )
+        .stdout.strip()
+    )
+    if not remote:
+        click.echo("No git remote 'origin' configured.")
+        return
+
+    click.echo(f"Updating from {remote} ...")
+    result = subprocess.run(
+        ["git", "pull", "--ff-only"],
+        capture_output=True, text=True, cwd=project_root,
+    )
+    if result.returncode != 0:
+        click.echo(f"Update failed:\n{result.stderr.strip()}")
+        return
+    click.echo(result.stdout.strip())
+
+    # Reinstall the package
+    click.echo("Reinstalling package...")
+    pip = project_root / ".venv" / "bin" / "pip"
+    if pip.exists():
+        subprocess.run(
+            [str(pip), "install", "-e", ".", "--quiet"],
+            cwd=project_root, check=True,
+        )
+    else:
+        # If no .venv, try system pip
+        subprocess.run(
+            ["pip", "install", "-e", ".", "--quiet"],
+            cwd=project_root, check=True,
+        )
+
+    click.echo("wt is up to date.")
 
 
 @cli.command()
