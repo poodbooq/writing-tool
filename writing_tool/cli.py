@@ -6,7 +6,7 @@ from typing import Any
 
 import click
 
-from writing_tool.config import get_api_key, get_ignored_dirs, get_model, load_config, save_defaults
+from writing_tool.config import get_api_key, get_ignored_dirs, get_is_deep, get_model, load_config, save_defaults
 from writing_tool.extractor import extract as llm_extract
 from writing_tool.interactive import run_extract
 from writing_tool.scanner import scan_md_files
@@ -157,12 +157,14 @@ def update_cmd() -> None:
 @cli.command()
 @click.argument("files", nargs=-1)
 @click.option("--yes", is_flag=True, help="Auto-approve all extractions")
-def extract(files: tuple[str, ...], yes: bool) -> None:
+@click.option("--deep", is_flag=True, help="Deep extraction with full entity types and relationships")
+def extract(files: tuple[str, ...], yes: bool, deep: bool) -> None:
     """Extract entities and relationships from markdown files via LLM."""
     store = _get_store()
     cfg = _get_config()
     model = get_model(cfg)
     api_key = get_api_key(cfg)
+    deep = deep or get_is_deep(cfg)
 
     if not files:
         return
@@ -175,7 +177,7 @@ def extract(files: tuple[str, ...], yes: bool) -> None:
         text = path.read_text(encoding="utf-8")
         stat = path.stat()
         click.echo(f"Analyzing {f}...")
-        result = llm_extract(text, model=model, api_key=api_key)
+        result = llm_extract(text, model=model, api_key=api_key, deep=deep)
         ne = len(result.get("entities", []))
         nr = len(result.get("relationships", []))
         click.echo(f"  Found {ne} entities, {nr} relationships")
@@ -198,12 +200,14 @@ def extract(files: tuple[str, ...], yes: bool) -> None:
 
 @cli.command()
 @click.option("--yes", is_flag=True, help="Auto-approve all extractions")
-def reindex(yes: bool) -> None:
+@click.option("--deep", is_flag=True, help="Deep extraction with full entity types and relationships")
+def reindex(yes: bool, deep: bool) -> None:
     """Re-extract all changed markdown files."""
     store = _get_store()
     cfg = _get_config()
     model = get_model(cfg)
     api_key = get_api_key(cfg)
+    deep = deep or get_is_deep(cfg)
     ignore_dirs = get_ignored_dirs(cfg)
     root = _find_wt_dir().parent
 
@@ -229,7 +233,7 @@ def reindex(yes: bool) -> None:
         assert isinstance(mtime, float)
         click.echo(f"\n{fpath}")
         text = _read_file(abspath)
-        result = llm_extract(text, model=model, api_key=api_key)
+        result = llm_extract(text, model=model, api_key=api_key, deep=deep)
         ne = len(result.get("entities", []))
         nr = len(result.get("relationships", []))
         click.echo(f"  {ne} entities, {nr} relationships")

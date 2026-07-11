@@ -71,3 +71,23 @@ class TestExtract:
         mock_completion.return_value = MockResponse(None)  # type: ignore[assignment]
         result = extract("text")
         assert result == {"entities": [], "relationships": []}
+
+    @patch("writing_tool.extractor.completion")
+    def test_extract_deep(self, mock_completion: object) -> None:
+        mock_completion.return_value = MockResponse(  # type: ignore[assignment]
+            '{"entities": [{"label": "Max", "type": "character", "props": {"role": "protagonist", "motive": "save"}}, {"label": "Fear", "type": "emotion", "props": {}}], "relationships": [{"source": "Max", "target": "Fear", "label": "feels"}]}'
+        )
+        result = extract("Max is scared.", deep=True)
+        assert len(result["entities"]) == 2
+        assert result["entities"][1]["type"] == "emotion"
+
+    @patch("writing_tool.extractor.completion")
+    def test_extract_deep_prompt_used(self, mock_completion: object) -> None:
+        mock_completion.return_value = MockResponse(  # type: ignore[assignment]
+            '{"entities": [], "relationships": []}'
+        )
+        extract("text", deep=True)
+        sent_messages = mock_completion.call_args[1]["messages"]  # type: ignore[union-attr]
+        system = sent_messages[0]["content"]
+        assert "Entity types (use the most specific type)" in system
+        assert "60+" in system

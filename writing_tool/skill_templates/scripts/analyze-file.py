@@ -5,7 +5,10 @@ Read a markdown file and return structured analysis WITHOUT writing to the DB.
 This is a dry-run: the LLM analyzes the text but nothing is saved.
 
 Usage:
-    analyze-file.py <file.md>
+    analyze-file.py <file.md> [--deep]
+
+Options:
+    --deep    Deep analysis with full entity types and relationships
 
 Output:
     JSON with entities and relationships found by the LLM
@@ -26,11 +29,14 @@ from writing_tool.config import get_model
 
 
 def main() -> None:
-    if not sys.argv[1:]:
-        print("Usage: analyze-file.py <file.md>", file=sys.stderr)
+    args = [a for a in sys.argv[1:] if a != "--deep"]
+    deep = "--deep" in sys.argv
+
+    if not args:
+        print("Usage: analyze-file.py <file.md> [--deep]", file=sys.stderr)
         sys.exit(1)
 
-    file_path = Path(sys.argv[1])
+    file_path = Path(args[0])
     if not file_path.exists():
         print(json.dumps({
             "status": "error",
@@ -45,7 +51,7 @@ def main() -> None:
         model = "gpt-4o-mini"
 
     text = file_path.read_text(encoding="utf-8")
-    result = llm_extract(text, model=model)
+    result = llm_extract(text, model=model, deep=deep)
 
     output = {
         "status": "ok",

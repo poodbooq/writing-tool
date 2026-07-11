@@ -9,8 +9,8 @@ All commands support `--help` for full option details.
 | `wt init [--skill]` | Create `.wt/` directory with DB + config | `--skill` also install agent skill to `.agents/skills/` |
 | `wt install-skill [--force]` | Install/update agent skill to `.agents/skills/` | `--force` overwrites existing files |
 | `wt update` | Update wt to latest version via git pull | — |
-| `wt extract [--yes] <file>...` | LLM analyzes `.md` files, opens `$EDITOR` for approval | `--yes` auto-approve |
-| `wt reindex [--yes]` | Re-extract all changed `.md` files | `--yes` batch mode |
+| `wt extract [--yes] [--deep] <file>...` | LLM analyzes `.md` files, opens `$EDITOR` for approval | `--yes` auto-approve, `--deep` full extraction |
+| `wt reindex [--yes] [--deep]` | Re-extract all changed `.md` files | `--yes` batch mode, `--deep` full extraction |
 
 ## Exploration
 

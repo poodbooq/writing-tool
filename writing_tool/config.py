@@ -40,6 +40,17 @@ def get_api_key(cfg: dict[str, Any]) -> str | None:
     return str(val) if val else None
 
 
+def get_detail_level(cfg: dict[str, Any]) -> str:
+    val = cfg.get("extractor", {}).get("detail_level", "high")
+    if isinstance(val, str) and val in ("low", "medium", "high"):
+        return val
+    return "high"
+
+
+def get_is_deep(cfg: dict[str, Any]) -> bool:
+    return get_detail_level(cfg) == "high"
+
+
 def get_ignored_dirs(cfg: dict[str, Any]) -> set[str]:
     dirs = cfg.get("scanner", {}).get("ignore_dirs", DEFAULT_IGNORE_DIRS)
     if isinstance(dirs, list):
@@ -54,6 +65,9 @@ def save_defaults(wt_dir: Path) -> None:
             "[llm]\n"
             'model = "gpt-4o-mini"\n'
             '# api_key = "sk-..."   # optional, overrides OPENAI_API_KEY\n'
+            "\n"
+            "[extractor]\n"
+            'detail_level = "high"     # low | medium | high\n'
             "\n"
             "[scanner]\n"
             'ignore_dirs = [".wt", ".agents"]\n',

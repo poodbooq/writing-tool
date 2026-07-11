@@ -62,6 +62,42 @@ def test_reindex_with_changes(mock_llm: object) -> None:
         assert "Found 1 changed file" in out
 
 
+@patch("writing_tool.cli.llm_extract")
+def test_extract_with_deep_flag(mock_llm: object) -> None:
+    mock_llm.return_value = {  # type: ignore[assignment]
+        "entities": [
+            {"label": "Max", "type": "character", "props": {"role": "protagonist"}},
+            {"label": "Fear", "type": "emotion", "props": {}},
+        ],
+        "relationships": [{"source": "Max", "target": "Fear", "label": "feels"}],
+    }
+    with tempfile.TemporaryDirectory() as d:
+        os.chdir(d)
+        runner = CliRunner()
+        runner.invoke(cli, ["init"])
+        Path("scene.md").write_text("Max is afraid.", encoding="utf-8")
+        out = runner.invoke(cli, ["extract", "scene.md", "--yes", "--deep"]).output
+        assert "Found 2 entities" in out
+        # Verify deep=True was passed to llm_extract
+        assert mock_llm.call_args[1]["deep"] is True
+
+
+@patch("writing_tool.cli.llm_extract")
+def test_reindex_with_deep_flag(mock_llm: object) -> None:
+    mock_llm.return_value = {  # type: ignore[assignment]
+        "entities": [{"label": "X", "type": "character", "props": {}}],
+        "relationships": [],
+    }
+    with tempfile.TemporaryDirectory() as d:
+        os.chdir(d)
+        runner = CliRunner()
+        runner.invoke(cli, ["init"])
+        Path("scene.md").write_text("X exists.", encoding="utf-8")
+        out = runner.invoke(cli, ["reindex", "--yes", "--deep"]).output
+        assert "Found 1 changed file" in out
+        assert mock_llm.call_args[1]["deep"] is True
+
+
 def test_graph_with_label() -> None:
     with tempfile.TemporaryDirectory() as d:
         os.chdir(d)
