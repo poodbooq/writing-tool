@@ -159,6 +159,23 @@ wt add-node --type character --label Максим --props '{"age":30}'
 | `DEEPSEEK_API_KEY` | — | For DeepSeek |
 | `OLLAMA_API_BASE` | — | For local Ollama |
 
+## Configuration
+
+`.wt/config.toml` is created by `wt init`:
+
+```toml
+[llm]
+model = "gpt-4o-mini"
+```
+
+The `model` value follows LiteLLM conventions:
+- `gpt-4o-mini` — OpenAI
+- `openrouter/anthropic/claude-3.5-sonnet` — OpenRouter
+- `deepseek/deepseek-chat` — DeepSeek
+- `ollama/llama3` — local Ollama
+
+Environment variable `WT_LLM_MODEL` overrides the config file.
+
 ## Development
 
 ```bash
