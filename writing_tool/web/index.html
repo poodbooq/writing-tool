@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>wt — story graph</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; }
+  #container { display: flex; height: 100vh; }
+  #sidebar { width: 320px; padding: 16px; overflow-y: auto; border-right: 1px solid #333; }
+  #graph-container { flex: 1; }
+  #graph-container canvas { width: 100% !important; height: 100% !important; }
+  h1 { font-size: 1.2rem; margin-bottom: 8px; color: #a78bfa; }
+  h2 { font-size: 1rem; margin: 12px 0 4px; color: #c4b5fd; }
+  input, button { width: 100%; padding: 8px; margin: 4px 0; border: 1px solid #444; border-radius: 4px; background: #16213e; color: #e0e0e0; }
+  button { cursor: pointer; background: #4f46e5; border: none; font-weight: 600; }
+  button:hover { background: #6366f1; }
+  #info { font-size: 0.85rem; line-height: 1.5; }
+  .node-info { background: #16213e; padding: 8px; border-radius: 4px; margin: 4px 0; }
+  .node-info .label { color: #a78bfa; font-weight: 600; }
+  .node-info .type { color: #6b7280; font-size: 0.8rem; }
+  .props { color: #9ca3af; font-size: 0.8rem; margin-top: 2px; }
+  #stats { font-size: 0.85rem; color: #9ca3af; margin-bottom: 8px; }
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 8px; }
+  .tab-bar button { flex: 1; font-size: 0.8rem; padding: 4px; background: #333; }
+  .tab-bar button.active { background: #4f46e5; }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="sidebar">
+    <h1>wt — story graph</h1>
+    <div id="stats"></div>
+    <input id="search" placeholder="Search entity..." />
+    <button onclick="searchNode()">Show</button>
+    <div class="tab-bar">
+      <button class="active" onclick="setDepth(1)" id="d1">1</button>
+      <button onclick="setDepth(2)" id="d2">2</button>
+      <button onclick="setDepth(3)" id="d3">3</button>
+    </div>
+    <div id="info"></div>
+  </div>
+  <div id="graph-container"></div>
+</div>
+
+<script src="https://unpkg.com/graphology@0.25.4/dist/graphology.umd.min.js"></script>
+<script src="https://unpkg.com/sigma@2.4.0/dist/sigma.umd.min.js"></script>
+<script src="https://unpkg.com/@sigma/edge-curve@2.4.0/dist/sigma-edge-curve.umd.min.js"></script>
+<script>
+let currentDepth = 2;
+let sigmaInstance = null;
+let graphData = null;
+
+async function fetchGraph(label) {
+  const url = label ? `/api/graph/${encodeURIComponent(label)}` : '/api/graph';
+  const resp = await fetch(url);
+  return await resp.json();
+}
+
+async function fetchStats() {
+  const resp = await fetch('/api/stats');
+  return await resp.json();
+}
+
+function renderGraph(data) {
+  if (sigmaInstance) {
+    sigmaInstance.kill();
+    sigmaInstance = null;
+  }
+
+  const graph = new graphology.Graph();
+  graphData = data;
+
+  for (const n of data.nodes) {
+    const size = n.type === 'character' ? 15 : n.type === 'location' ? 12 : 10;
+    const color = n.type === 'character' ? '#a78bfa' :
+                  n.type === 'location' ? '#34d399' :
+                  n.type === 'event' ? '#fbbf24' :
+                  n.type === 'item' ? '#f472b6' : '#6b7280';
+    graph.addNode(n.key, { label: n.label, size, color, x: Math.random(), y: Math.random() });
+  }
+
+  for (const e of data.edges) {
+    if (graph.hasNode(e.source) && graph.hasNode(e.target)) {
+      graph.addEdge(e.source, e.target, { label: e.label, type: 'curved' });
+    }
+  }
+
+  sigmaInstance = new sigma.Sigma(graph, document.getElementById('graph-container'), {
+    renderEdgeLabels: true,
+    labelFont: 'system-ui, sans-serif',
+    labelColor: { color: '#e0e0e0' },
+    edgeLabelFont: 'system-ui, sans-serif',
+    edgeLabelColor: { color: '#9ca3af' },
+    edgeLabelSize: 10,
+  });
+
+  sigmaInstance.on('clickNode', ({ node }) => {
+    const n = data.nodes.find(x => x.key === node);
+    if (n) showNodeInfo(n);
+  });
+
+  // Force layout via simple iterations
+  const nodesArr = graph.filterNodes(() => true);
+  for (let iter = 0; iter < 100; iter++) {
+    for (const a of nodesArr) {
+      for (const b of nodesArr) {
+        if (a === b) continue;
+        const dx = graph.getNodeAttribute(a, 'x') - graph.getNodeAttribute(b, 'x');
+        const dy = graph.getNodeAttribute(a, 'y') - graph.getNodeAttribute(b, 'y');
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const force = 0.001 / dist;
+        graph.setNodeAttribute(a, 'x', graph.getNodeAttribute(a, 'x') + dx * force);
+        graph.setNodeAttribute(a, 'y', graph.getNodeAttribute(a, 'y') + dy * force);
+      }
+    }
+  }
+  sigmaInstance.refresh();
+}
+
+function showNodeInfo(n) {
+  const info = document.getElementById('info');
+  let html = `<div class="node-info">
+    <div class="label">${escHtml(n.label)}</div>
+    <div class="type">${escHtml(n.type)}</div>`;
+  if (n.attributes && Object.keys(n.attributes).length) {
+    html += '<div class="props">';
+    for (const [k, v] of Object.entries(n.attributes)) {
+      html += `${escHtml(k)}: ${escHtml(String(v))}<br>`;
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  info.innerHTML = html;
+}
+
+async function loadGraph(label) {
+  const data = await fetchGraph(label);
+  renderGraph(data);
+  const info = document.getElementById('info');
+  info.innerHTML = `<div class="node-info">${data.nodes.length} nodes, ${data.edges.length} edges</div>`;
+}
+
+async function loadStats() {
+  const s = await fetchStats();
+  document.getElementById('stats').textContent = `${s.nodes} nodes · ${s.edges} edges · ${Object.keys(s.by_type).length} types`;
+}
+
+async function searchNode() {
+  const label = document.getElementById('search').value.trim();
+  if (!label) {
+    await loadGraph(null);
+    return;
+  }
+  await loadGraph(label);
+  const info = document.getElementById('info');
+  info.innerHTML = `<div class="node-info"><div class="label">Showing subgraph around "${escHtml(label)}"</div></div>`;
+}
+
+function setDepth(d) {
+  currentDepth = d;
+  document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+  document.getElementById('d' + d).classList.add('active');
+}
+
+function escHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+loadStats();
+loadGraph(null);
+</script>
+</body>
+</html>
