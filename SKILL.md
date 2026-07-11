@@ -1,13 +1,15 @@
 # wt — Writing Tool
 
 Graph-based entity/relationship tracker for fiction writers.  
-File is source of truth (`.md` files), SQLite (`writing.db`) is the graph index.
+File is source of truth (`.md` files), SQLite (`.wt/writing.db`) is the graph index.
 
 ## Commands
 
 | Command | Description | Agent Usage |
 |---------|-------------|-------------|
-| `wt init` | Create `writing.db` in project root | On project setup |
+| `wt init [--skill]` | Create `.wt/` with DB + config; optionally install skill | On project setup |
+| `wt install-skill [--force]` | Install/update agent skill to `.agents/skills/writing-tool/` | First-time skill setup |
+| `wt update` | Update wt to latest version via git pull | Keep tool current |
 | `wt extract [--yes] <file>...` | LLM analyzes `.md` files, opens `$EDITOR` for approval | `--yes` for auto-approve |
 | `wt reindex [--yes]` | Re-extract all changed `.md` files | `--yes` for batch |
 | `wt show <label> [--depth N] [--json]` | Show entity properties + relationships | `--json` for structured data |
@@ -60,7 +62,7 @@ Free-form verb phrases: `loves`, `fears`, `located_in`, `works_at`, `born_in`, `
 ```python
 from writing_tool.store import Store
 
-store = Store("writing.db")
+store = Store(".wt/writing.db")
 
 # Nodes
 nid = store.add_node("character", "Максим", {"age": 30})
@@ -84,7 +86,7 @@ store.stats()
 
 ## Workflow
 
-1. `wt init` — one-time setup
+1. `wt init --skill` — one-time setup
 2. Write `.md` files in any directory structure
 3. `wt extract file.md` or `wt reindex --yes` — LLM extracts entities
 4. `wt show "Максим"` — inspect entity graph

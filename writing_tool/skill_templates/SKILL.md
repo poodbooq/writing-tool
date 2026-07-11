@@ -61,3 +61,5 @@ Detailed documentation in `references/`:
 - Use `--json` for structured machine-readable output
 - The `.wt/` directory contains the database and configuration
 - The LLM model is configured in `.wt/config.toml` or `WT_LLM_MODEL` env var
+- Run `wt update` to update wt to the latest version
+- Run `wt install-skill --force` to refresh the skill files
